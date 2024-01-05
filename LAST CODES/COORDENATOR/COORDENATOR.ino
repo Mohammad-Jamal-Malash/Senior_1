@@ -7,6 +7,16 @@
 #include <Adafruit_MQTT.h>
 #include <Adafruit_MQTT_Client.h>
 
+#define ssRX  D7 /* Rx pin for software serial */
+#define ssTX  D6 /* Tx pin for software serial */
+
+
+/* Create object named xbee_ss of the class SoftwareSerial */ 
+SoftwareSerial xbee_ss(ssRX, ssTX); /* Define pins for software serial instance named xbee-ss(any name of your choice) to be connected to xbee */
+/* ssTx of Arduino connected to Din (pin 3 of xbee) */
+/* ssRx of Arduino connected to Dout (pin 2 of xbee) */
+
+
 
 const char *ssid =  "JAMAL";     // replace with your wifi ssid and wpa2 key
 const char *pass =  "1234554321";
@@ -28,15 +38,7 @@ Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_PORT,
 
 LinkedList<XBeeAddress64> NodesList;
 
-#define ssRX  9 /* Rx pin for software serial */
-#define ssTX  8 /* Tx pin for software serial */
 
-
-
-/* Create object named xbee_ss of the class SoftwareSerial */ 
-SoftwareSerial xbee_ss(ssRX, ssTX); /* Define pins for software serial instance named xbee-ss(any name of your choice) to be connected to xbee */
-/* ssTx of Arduino connected to Din (pin 3 of xbee) */
-/* ssRx of Arduino connected to Dout (pin 2 of xbee) */
 
 XBeeWithCallbacks xbee; /* Create an object named xbee(any name of your choice) of the class XBee */
 
@@ -87,13 +89,14 @@ void processRxPacket(ZBRxResponse& rx, uintptr_t) {
   XBeeAddress64 addr = rx.getRemoteAddress64();
   int index =   indexOf(addr);
   String Node = String(addr,HEX);
-
+      Serial.println(Node);
     Buffer b(rx.getData(), rx.getDataLength());
     uint8_t type = b.remove<uint8_t>();
 
       if(index == -1){
         NodesList.add(addr);
       }
+      
 
       if ( type == 1 && b.len() == 8) {
       publish(FPSTR((Node +"/Temperature").c_str()), b.remove<float>());
@@ -130,6 +133,25 @@ void setup() {
 
   Serial.println(F("Starting..."));
 
+
+
+       delay(10);
+ 
+       Serial.println("Connecting to ");
+       Serial.println(ssid);
+ 
+ 
+       WiFi.begin(ssid, pass);
+ 
+      while (WiFi.status() != WL_CONNECTED) 
+     {
+            delay(500);
+            Serial.print(".");
+     }
+      Serial.println("");
+      Serial.println("WiFi connected");
+
+      connect();
 
  xbee.onPacketError(printErrorCb, (uintptr_t)(Print*)&Serial);
  xbee.onResponse(printErrorCb, (uintptr_t)(Print*)&Serial);
